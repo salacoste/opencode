@@ -19,6 +19,7 @@ import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
 import { SystemPrompt } from "./system"
+import { SessionPrompt } from "./prompt"
 import { Flag } from "@/flag/flag"
 import { PermissionNext } from "@/permission/next"
 import { Auth } from "@/auth"
@@ -26,7 +27,10 @@ import { Auth } from "@/auth"
 export namespace LLM {
   const log = Log.create({ service: "llm" })
 
-  export const OUTPUT_TOKEN_MAX = Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
+  export const OUTPUT_TOKEN_MAX = SessionPrompt.OUTPUT_TOKEN_MAX
+
+  // Limit messages to prevent context bloat and infinite loops.
+  const MAX_MESSAGES = 50
 
   export type StreamInput = {
     user: MessageV2.User
@@ -125,14 +129,25 @@ export namespace LLM {
 
     const maxOutputTokens = isCodex
       ? undefined
-      : ProviderTransform.maxOutputTokens(
-          input.model.api.npm,
-          params.options,
-          input.model.limit.output,
-          OUTPUT_TOKEN_MAX,
-        )
+      : ProviderTransform.maxOutputTokens(input.model.api.npm, params.options, input.model.limit.output, OUTPUT_TOKEN_MAX)
 
     const tools = await resolveTools(input)
+
+    const systemMessages: ModelMessage[] = isCodex
+      ? [
+          {
+            role: "user",
+            content: system.join("\n\n"),
+          } as ModelMessage,
+        ]
+      : system.map(
+          (x): ModelMessage => ({
+            role: "system",
+            content: x,
+          }),
+        )
+    const maxNonSystemMessages = Math.max(0, MAX_MESSAGES - systemMessages.length)
+    const messages = systemMessages.length > MAX_MESSAGES ? systemMessages.slice(-MAX_MESSAGES) : [...systemMessages, ...input.messages.slice(-maxNonSystemMessages)]
 
     return streamText({
       onError(error) {
@@ -188,22 +203,7 @@ export namespace LLM {
         ...input.model.headers,
       },
       maxRetries: input.retries ?? 0,
-      messages: [
-        ...(isCodex
-          ? [
-              {
-                role: "user",
-                content: system.join("\n\n"),
-              } as ModelMessage,
-            ]
-          : system.map(
-              (x): ModelMessage => ({
-                role: "system",
-                content: x,
-              }),
-            )),
-        ...input.messages,
-      ],
+      messages,
       model: wrapLanguageModel({
         model: language,
         middleware: [
@@ -224,6 +224,12 @@ export namespace LLM {
   }
 
   async function resolveTools(input: Pick<StreamInput, "tools" | "agent" | "user">) {
+    if (input.user.tools?.["*"] === false) {
+      for (const key of Object.keys(input.tools)) {
+        if (key !== "invalid") delete input.tools[key]
+      }
+      return input.tools
+    }
     const disabled = PermissionNext.disabled(Object.keys(input.tools), input.agent.permission)
     for (const tool of Object.keys(input.tools)) {
       if (input.user.tools?.[tool] === false || disabled.has(tool)) {

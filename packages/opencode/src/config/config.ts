@@ -178,6 +178,15 @@ export namespace Config {
       result.compaction = { ...result.compaction, prune: false }
     }
 
+    // [FIX] Ensure compaction auto defaults to true (not false)
+    if (!result.compaction?.auto) {
+      result.compaction = { ...result.compaction, auto: true }
+    }
+    // [FIX] Ensure prune defaults to true
+    if (result.compaction?.prune === undefined) {
+      result.compaction = { ...result.compaction, prune: true }
+    }
+
     result.plugin = deduplicatePlugins(result.plugin ?? [])
 
     return {
@@ -751,6 +760,7 @@ export namespace Config {
       session_parent: z.string().optional().default("<leader>up").describe("Go to parent session"),
       terminal_suspend: z.string().optional().default("ctrl+z").describe("Suspend terminal"),
       terminal_title_toggle: z.string().optional().default("none").describe("Toggle terminal title"),
+      console_toggle: z.string().optional().default("ctrl+shift+l").describe("Toggle console visibility"),
       tips_toggle: z.string().optional().default("<leader>h").describe("Toggle tips on home screen"),
     })
     .strict()
