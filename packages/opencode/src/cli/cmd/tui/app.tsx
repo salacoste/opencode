@@ -475,6 +475,7 @@ function App() {
       title: "Toggle console",
       category: "System",
       value: "app.console",
+      keybind: "console_toggle",
       onSelect: (dialog) => {
         renderer.console.toggle()
         dialog.clear()

@@ -17,13 +17,15 @@ import type { Agent } from "@/agent/agent"
 import type { MessageV2 } from "./message-v2"
 import { Plugin } from "@/plugin"
 import { SystemPrompt } from "./system"
+import { SessionPrompt } from "./prompt"
 import { Flag } from "@/flag/flag"
 import { PermissionNext } from "@/permission/next"
 
 export namespace LLM {
-  const log = Log.create({ service: "llm" })
+  const log = Log.create({ service: "session.llm" })
 
-  export const OUTPUT_TOKEN_MAX = Flag.OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
+  // [FIX] Limit messages to prevent context bloat and infinite loops
+  const MAX_MESSAGES = 50
 
   export type StreamInput = {
     user: MessageV2.User
@@ -116,10 +118,21 @@ export namespace LLM {
       input.model.api.npm,
       params.options,
       input.model.limit.output,
-      OUTPUT_TOKEN_MAX,
+      SessionPrompt.OUTPUT_TOKEN_MAX,
     )
 
     const tools = await resolveTools(input)
+
+    // [FIX] Limit messages to prevent context bloat with large histories
+    const limitedMessages = [
+      ...system.map(
+        (x): ModelMessage => ({
+          role: "system",
+          content: x,
+        }),
+      ),
+      ...input.messages,
+    ].slice(-MAX_MESSAGES)
 
     return streamText({
       onError(error) {
@@ -168,15 +181,7 @@ export namespace LLM {
         ...input.model.headers,
       },
       maxRetries: input.retries ?? 0,
-      messages: [
-        ...system.map(
-          (x): ModelMessage => ({
-            role: "system",
-            content: x,
-          }),
-        ),
-        ...input.messages,
-      ],
+      messages: limitedMessages,
       model: wrapLanguageModel({
         model: language,
         middleware: [

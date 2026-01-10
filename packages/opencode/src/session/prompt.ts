@@ -639,6 +639,23 @@ export namespace SessionPrompt {
 
       const sessionMessages = clone(msgs)
 
+      // [FIX] Check message count and compact if exceeded
+      const MAX_MESSAGES = 50
+
+      // Compact if message count exceeds limit (even if context not full)
+      if (sessionMessages.length > MAX_MESSAGES) {
+        log.info(`Message count (${sessionMessages.length}) exceeds limit (${MAX_MESSAGES}), compacting...`)
+        const compacted = await SessionCompaction.create({
+          sessionID,
+          agent: lastUser.agent,
+          model: lastUser.model,
+          auto: true,
+        })
+        if (compacted === "stop") break
+        // Reload messages after compaction
+        msgs = clone(await Session.messages({ sessionID }))
+      }
+
       // Ephemerally wrap queued user messages with a reminder to stay on track
       if (step > 1 && lastFinished) {
         for (const msg of sessionMessages) {
