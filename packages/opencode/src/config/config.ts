@@ -178,11 +178,11 @@ export namespace Config {
       result.compaction = { ...result.compaction, prune: false }
     }
 
-    // [FIX] Ensure compaction auto defaults to true (not false)
-    if (!result.compaction?.auto) {
+    // Ensure compaction.auto defaults to true (but don't override explicit false).
+    if (result.compaction?.auto === undefined) {
       result.compaction = { ...result.compaction, auto: true }
     }
-    // [FIX] Ensure prune defaults to true
+    // Ensure compaction.prune defaults to true (but don't override explicit false).
     if (result.compaction?.prune === undefined) {
       result.compaction = { ...result.compaction, prune: true }
     }
