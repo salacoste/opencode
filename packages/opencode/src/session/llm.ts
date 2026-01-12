@@ -128,7 +128,12 @@ export namespace LLM {
 
     const maxOutputTokens = isCodex
       ? undefined
-      : ProviderTransform.maxOutputTokens(input.model.api.npm, params.options, input.model.limit.output, OUTPUT_TOKEN_MAX)
+      : ProviderTransform.maxOutputTokens(
+          input.model.api.npm,
+          params.options,
+          input.model.limit.output,
+          OUTPUT_TOKEN_MAX,
+        )
 
     const tools = await resolveTools(input)
 
@@ -146,7 +151,10 @@ export namespace LLM {
           }),
         )
     const maxNonSystemMessages = Math.max(0, MAX_MESSAGES - systemMessages.length)
-    const messages = systemMessages.length > MAX_MESSAGES ? systemMessages.slice(-MAX_MESSAGES) : [...systemMessages, ...input.messages.slice(-maxNonSystemMessages)]
+    const messages =
+      systemMessages.length > MAX_MESSAGES
+        ? systemMessages.slice(-MAX_MESSAGES)
+        : [...systemMessages, ...input.messages.slice(-maxNonSystemMessages)]
 
     return streamText({
       onError(error) {

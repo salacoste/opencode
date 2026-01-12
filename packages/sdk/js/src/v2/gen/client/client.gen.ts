@@ -158,65 +158,39 @@ export const createClient = (config: Config = {}): Client => {
       }
 
       let data: any
-      try {
-        switch (parseAs) {
-          case "arrayBuffer":
-          case "blob":
-          case "formData":
-          case "json":
-          case "text":
-            data = await response[parseAs]()
-            break
-          case "stream":
-            return opts.responseStyle === "data"
-              ? response.body
-              : {
-                  data: response.body,
-                  ...result,
-                }
-        }
-
-        if (parseAs === "json") {
-          if (opts.responseValidator) {
-            await opts.responseValidator(data)
-          }
-
-          if (opts.responseTransformer) {
-            data = await opts.responseTransformer(data)
-          }
-        }
-
-        return opts.responseStyle === "data"
-          ? data
-          : {
-              data,
-              ...result,
-            }
-      } catch (error) {
-        // Handle parsing errors (e.g., aborted requests with incomplete JSON)
-        let finalError = error
-
-        for (const fn of interceptors.error.fns) {
-          if (fn) {
-            finalError = (await fn(error, undefined as any, request, opts)) as unknown
-          }
-        }
-
-        finalError = finalError || ({} as unknown)
-
-        if (opts.throwOnError) {
-          throw finalError
-        }
-
-        // Return error response for parsing failures
-        return opts.responseStyle === "data"
-          ? undefined
-          : {
-              error: finalError,
-              request,
-              response,
-            }
+      switch (parseAs) {
+        case "arrayBuffer":
+        case "blob":
+        case "formData":
+        case "json":
+        case "text":
+          data = await response[parseAs]()
+          break
+        case "stream":
+          return opts.responseStyle === "data"
+            ? response.body
+            : {
+                data: response.body,
+                ...result,
+              }
       }
+
+      if (parseAs === "json") {
+        if (opts.responseValidator) {
+          await opts.responseValidator(data)
+        }
+
+        if (opts.responseTransformer) {
+          data = await opts.responseTransformer(data)
+        }
+      }
+
+      return opts.responseStyle === "data"
+        ? data
+        : {
+            data,
+            ...result,
+          }
     }
 
     const textError = await response.text()

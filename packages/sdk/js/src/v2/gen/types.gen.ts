@@ -1250,6 +1250,10 @@ export type KeybindsConfig = {
    */
   terminal_title_toggle?: string
   /**
+   * Toggle console visibility
+   */
+  console_toggle?: string
+  /**
    * Toggle tips on home screen
    */
   tips_toggle?: string
