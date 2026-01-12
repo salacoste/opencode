@@ -8515,6 +8515,11 @@
             "default": "none",
             "type": "string"
           },
+          "console_toggle": {
+            "description": "Toggle console visibility",
+            "default": "ctrl+shift+l",
+            "type": "string"
+          },
           "tips_toggle": {
             "description": "Toggle tips on home screen",
             "default": "<leader>h",

@@ -236,10 +236,7 @@ export namespace SessionPrompt {
     "There is a pending todo list from earlier. Do not continue it unless the user explicitly asks to continue. Ask a brief clarification if needed."
 
   function hasVisibleText(parts: MessageV2.Part[]) {
-    return parts.some(
-      (part) =>
-        part.type === "text" && !part.synthetic && !part.ignored && part.text.trim().length > 0,
-    )
+    return parts.some((part) => part.type === "text" && !part.synthetic && !part.ignored && part.text.trim().length > 0)
   }
 
   function hasReasoningOrTool(parts: MessageV2.Part[]) {
@@ -248,9 +245,8 @@ export namespace SessionPrompt {
 
   function isFinalFallbackRequest(msg?: MessageV2.WithParts) {
     return (
-      msg?.parts.some(
-        (part) => part.type === "text" && part.metadata && part.metadata[FINAL_FALLBACK_METADATA],
-      ) ?? false
+      msg?.parts.some((part) => part.type === "text" && part.metadata && part.metadata[FINAL_FALLBACK_METADATA]) ??
+      false
     )
   }
 
@@ -324,10 +320,10 @@ export namespace SessionPrompt {
       let tasks: (MessageV2.CompactionPart | MessageV2.SubtaskPart)[] = []
       for (let i = msgs.length - 1; i >= 0; i--) {
         const msg = msgs[i]
-      if (!lastUserMsg && msg.info.role === "user") {
-        lastUserMsg = msg
-        lastUser = msg.info as MessageV2.User
-      }
+        if (!lastUserMsg && msg.info.role === "user") {
+          lastUserMsg = msg
+          lastUser = msg.info as MessageV2.User
+        }
         if (!lastAssistantMsg && msg.info.role === "assistant") {
           lastAssistantMsg = msg
           lastAssistant = msg.info as MessageV2.Assistant
